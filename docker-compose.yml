@@ -1,0 +1,43 @@
+services:
+  app:
+    image: oficio_camera_front_app:latest
+    networks:
+      - traefik_public
+    environment:
+      # Ajuste as variáveis de ambiente conforme necessário para seu projeto Next.js
+      DATABASE_URL: "mysql://root:AA88xk62@187.87.80.22:3306/db_oficio_camera"
+      NEXTAUTH_SECRET: "12345678901234567890123456789012"
+      NEXTAUTH_URL: "https://oficiocamara.alfenas.mg.gov.br"
+      GEMINIIA_API_KEY: "AIzaSyBVT4tf3mH7JNAIre-rNNc2B6iSGeXEtWA"
+      MINIO_ENDPOINT: "s3.alfenas.mg.gov.br"
+      MINIO_ACCESS_KEY: "bAn25VmcOAJXvgPb9HKj"
+      MINIO_SECRET_KEY: "iG2E2y6C0y88uZ1h6RgHSkrdfK5qSPxj81fmAppb"
+      MINIO_BUCKET: "oficio-camera"
+      MINIO_USE_SSL: "true"
+      SMTP_HOST: "smtp.gmail.com"
+      SMTP_PORT: "587"
+      SMTP_SECURE: "false"
+      SMTP_USER: "marcelo.lima.gomes.23@gmail.com"
+      SMTP_PASS: "xvcv jgzk gfle edqg"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.oficio_camera_front_app.rule=Host(`oficiocamara.alfenas.mg.gov.br`)"
+        - "traefik.http.routers.oficio_camera_front_app.tls.certresolver=le"
+        - "traefik.http.routers.oficio_camera_front_app.entrypoints=websecure"
+        - "traefik.http.routers.oficio_camera_front_app.tls=true"
+        - "traefik.http.routers.oficio_camera_front_app.service=oficio_camera_front_app"
+        - "traefik.http.services.oficio_camera_front_app.loadbalancer.server.port=4000"
+
+networks:
+  traefik_public:
+    external: true

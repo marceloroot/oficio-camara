@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  MPMG
+  SECRETARIA
+  MASTER
+}
+
+enum OficioStatus {
+  PENDENTE
+  RESPONDIDO
+  VENCIDO
+}
+
+model Secretaria {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  slaDias   Int      @default(15)
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  users     User[]
+  oficios   Oficio[]
+}
+
+model User {
+  id           String      @id @default(uuid())
+  nome         String
+  email        String      @unique
+  password     String
+  role         Role
+  secretariaId String?
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id])
+  createdAt    DateTime    @default(now())
+  logs         AuditLog[]  @relation("UserAuditLogs")
+  oficiosCriados Oficio[]  @relation("OficioCriadoPor")
+  assinaturas Assinatura[] @relation("AssinaturaSignedBy")
+
+  prorrogacoes Prorrogacao[] @relation("ProrrogacaoSolicitadaPor")
+  prorrogacoesAprovadas Prorrogacao[] @relation("ProrrogacaoAprovadaPor")
+  
+  respostas    Resposta[]
+  anexosEnviados Anexo[] @relation("AnexoEnviadoPor")
+
+   ativo Boolean @default(true)
+   notificacoes Notificacao[] 
+}
+
+model Oficio {
+  id           String       @id @default(uuid())
+  numero       String       @unique
+  assunto      String
+  descricao    String  @db.Text
+  secretarias  Secretaria[]
+  criadoPorId  String
+  criadoPor    User         @relation("OficioCriadoPor", fields: [criadoPorId], references: [id])
+  dataCriacao  DateTime     @default(now())
+  prazoDias    Int
+  status       OficioStatus @default(PENDENTE)
+  respostas    Resposta[]
+  prorrogacoes Prorrogacao[]
+  anexos       Anexo[]
+  historico    Historico[]
+  leituras     Leitura[]
+  assinatura   Assinatura?
+  notificacoes Notificacao[]
+  createdAt    DateTime     @default(now())
+}
+
+model Resposta {
+  id              String      @id @default(uuid())
+  oficioId        String
+  oficio          Oficio      @relation(fields: [oficioId], references: [id])
+  texto           String  @db.Text
+  respondidoPorId String
+  respondidoPor   User        @relation(fields: [respondidoPorId], references: [id])
+  anexos          Anexo[]
+  assinatura      Assinatura?
+  createdAt       DateTime    @default(now())
+}
+
+model Prorrogacao {
+  id        String   @id @default(uuid())
+
+  oficioId  String
+  oficio    Oficio   @relation(fields: [oficioId], references: [id])
+
+  diasSolicitados Int
+  motivo    String
+
+  solicitadaPorId String
+  solicitadaPor   User @relation("ProrrogacaoSolicitadaPor", fields: [solicitadaPorId], references: [id])
+
+  aprovada     Boolean?
+  aprovadaPorId String?
+  aprovadaPor   User? @relation("ProrrogacaoAprovadaPor", fields: [aprovadaPorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Anexo {
+  id         String    @id @default(uuid())
+  nome       String
+  url        String
+  versao     Int       @default(1)
+  oficioId   String?
+  respostaId String?
+  enviadoPorId String?
+  oficio     Oficio?   @relation(fields: [oficioId], references: [id])
+  resposta   Resposta? @relation(fields: [respostaId], references: [id])
+  enviadoPor User? @relation("AnexoEnviadoPor", fields: [enviadoPorId], references: [id])
+  createdAt  DateTime  @default(now())
+}
+
+model Historico {
+  id        String   @id @default(uuid())
+  oficioId  String
+  oficio    Oficio   @relation(fields: [oficioId], references: [id])
+  evento    String
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model Leitura {
+  id            String   @id @default(uuid())
+  oficioId      String
+  oficio        Oficio   @relation(fields: [oficioId], references: [id])
+  userId        String
+  visualizadoEm DateTime @default(now())
+}
+
+model Assinatura {
+  id         String    @id @default(uuid())
+  oficioId   String?   @unique
+  oficio     Oficio?   @relation(fields: [oficioId], references: [id])
+
+  respostaId String?   @unique
+  resposta   Resposta? @relation(fields: [respostaId], references: [id])
+
+  hash       String
+  signedById String
+  signedBy   User      @relation("AssinaturaSignedBy", fields: [signedById], references: [id])
+  signedAt   DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserAuditLogs", fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  createdAt DateTime @default(now())
+}
+
+model Notificacao {
+  id        String   @id @default(uuid())
+  titulo    String
+  mensagem  String
+  lida      Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  oficioId  String?
+  oficio    Oficio?  @relation(fields: [oficioId], references: [id])
+  createdAt DateTime @default(now())
+}
